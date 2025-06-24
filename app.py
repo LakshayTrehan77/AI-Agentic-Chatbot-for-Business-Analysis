@@ -136,40 +136,6 @@ def fallback_questions():
         {"type": "Input", "question": "Describe your key product.", "options": []}
     ]
 
-# Batch categorize user responses to minimize API calls
-def categorize_responses(responses):
-    logging.info(f"Batch categorizing {len(responses)} responses")
-    if not responses:
-        return []
-
-    prompt = f"""
-    Categorize each of the following responses as Positive, Negative, or Neutral.
-    Provide the output as a JSON array where each element corresponds to the input response in order.
-    Responses: {json.dumps(responses, indent=2)}
-    Output:
-    ["category1", "category2", ...]
-    """
-
-    try:
-        response = model.generate_content(prompt)
-        increment_api_call()
-        response_text = response.text.strip()
-
-        # Strip markdown formatting
-        if response_text.startswith("```json"):
-            response_text = response_text.lstrip("```json").rstrip("```").strip()
-        elif response_text.startswith("```"):
-            response_text = response_text.strip("```").strip()
-
-        categories = json.loads(response_text)
-        if len(categories) != len(responses):
-            logging.warning("Mismatch in number of categorized responses")
-            return ["Neutral"] * len(responses)
-        return categories
-    except Exception as e:
-        logging.error(f"Batch categorization failed: {str(e)}")
-        return ["Neutral"] * len(responses)
-
 # Streamlit app
 def main():
     st.set_page_config(page_title="AI Business Analysis", layout="wide")
@@ -209,6 +175,8 @@ def main():
         st.session_state.show_follow_up = False
     if 'analysis_error' not in st.session_state:
         st.session_state.analysis_error = None
+    if 'question_cache' not in st.session_state:
+        st.session_state.question_cache = {}
 
     # Sidebar for company info and controls
     with st.sidebar:
@@ -281,8 +249,6 @@ def main():
                 st.session_state.question_cache[cache_key] = questions
                 st.session_state.current_questions = questions
 
-        
-
         if st.button("Clear History"):
             logging.info("Clearing history")
             st.session_state.conversation = []
@@ -309,7 +275,7 @@ def main():
     if st.session_state.company_info and st.session_state.selected_task and st.session_state.current_questions:
         st.subheader(f"Task: {st.session_state.selected_task}")
         # Progress bar
-        total_steps = max(len(st.session_state.current_questions), 7) + 1 + st.session_state.max_follow_ups  # Removed +1 for Thank You screen
+        total_steps = max(len(st.session_state.current_questions), 7) + 1 + st.session_state.max_follow_ups
         current_progress = st.session_state.questions_asked + (1 if st.session_state.final_response_generated else 0) + st.session_state.follow_up_count
         progress = min(current_progress / total_steps, 1.0)
         st.progress(progress, text=f"Step {current_progress} of {total_steps}")
@@ -361,20 +327,8 @@ def main():
         elif not st.session_state.question_phase and not st.session_state.final_response_generated:
             with st.spinner("Generating detailed analysis..."):
                 try:
-                    # Batch categorize all answers in one API call
-                    answer_texts = [ans["answer"] for ans in st.session_state.answers]
-                    logging.info(f"Answer texts for categorization: {json.dumps(answer_texts, indent=2)}")
-                    categories = categorize_responses(answer_texts)
-                    logging.info(f"Answer categories: {json.dumps(categories, indent=2)}")
-
-                    categorized_answers = [
-                        {**ans, "category": categories[i]}
-                        for i, ans in enumerate(st.session_state.answers)
-                    ]
-                    logging.info(f"Categorized answers: {json.dumps(categorized_answers, indent=2)}")
-
                     company_info_str = ", ".join(f"{k}: {v}" for k, v in st.session_state.company_info.items() if v)
-                    answers_str = json.dumps(categorized_answers, indent=2)
+                    answers_str = json.dumps(st.session_state.answers, indent=2)
                     history = "\n".join(f"{m['role']}: {m['content']}" for m in st.session_state.conversation)
                     
                     response = st.session_state.agent.generate_final_response(history, company_info_str, answers_str)
