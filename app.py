@@ -29,14 +29,16 @@ if not GEMINI_API_KEY:
     st.stop()
 
 # Configure Gemini API
-try:
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-2.0-flash')
-    logging.info("Gemini API configured successfully")
-except Exception as e:
-    st.error(f"Failed to configure Gemini API: {str(e)}")
-    logging.error(f"Gemini API configuration failed: {str(e)}")
-    st.stop()
+if 'gemini_configured' not in st.session_state:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        st.session_state.model = genai.GenerativeModel('gemini-2.0-flash')
+        st.session_state.gemini_configured = True
+        logging.info("Gemini API configured successfully")
+    except Exception as e:
+        st.error(f"Failed to configure Gemini API: {str(e)}")
+        logging.error(f"Gemini API configuration failed: {str(e)}")
+        st.stop()
 
 # Track API calls
 if 'api_call_count' not in st.session_state:
