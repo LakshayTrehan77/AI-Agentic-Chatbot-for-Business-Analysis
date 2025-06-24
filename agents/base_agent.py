@@ -10,7 +10,7 @@ class BaseAgent:
         User Answers: {answers}
         History: {conversation_history}
 
-        Generate a concise final response for the task based on the company information and user answers to questions. Provide actionable insights relevant to the task.
+        Generate a detailed and comprehensive final response for the task based on the company information and user answers to questions. Provide in-depth, actionable insights relevant to the task, including specific recommendations, potential challenges, and strategic considerations. Structure the response with clear sections (e.g., Overview, Key Insights, Recommendations, Conclusion) to ensure clarity and depth.
         """
         try:
             response = self.model.generate_content(prompt)
@@ -25,7 +25,7 @@ class BaseAgent:
         User Follow-Up: {user_input}
         History: {conversation_history}
 
-        Generate a concise response to the follow-up question, ensuring relevance to the task and company context.
+        Generate a concise response to the follow-up question, ensuring relevance to the task and company context. Keep the response brief, focused, and directly addressing the user's query.
         """
         try:
             response = self.model.generate_content(prompt)
