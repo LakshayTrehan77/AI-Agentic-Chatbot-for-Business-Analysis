@@ -39,7 +39,8 @@ if 'gemini_configured' not in st.session_state:
         st.error(f"Failed to configure Gemini API: {str(e)}")
         logging.error(f"Gemini API configuration failed: {str(e)}")
         st.stop()
-
+        
+model = st.session_state.model
 # Track API calls
 if 'api_call_count' not in st.session_state:
     st.session_state.api_call_count = 0
